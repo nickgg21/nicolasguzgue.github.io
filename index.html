@@ -436,54 +436,129 @@
         <script src="js/scripts.js"></script>
         
         <!-- EmailJS -->
-  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
-  <script>
+    <script>
         (function(){
-        emailjs.init("DkEVmJkxkpHwnscA-"); // 👈 reemplaza esto
+        emailjs.init("DkEVmJkxkpHwnscA-");
         })();
 
         const form = document.getElementById("formulario");
+        const boton = form.querySelector("button");
+
+        // ⏱️ Tiempo de carga (anti spam rápido)
+        let tiempoInicio = Date.now();
+
+        // 🧼 Limpiar input
+        function limpiarInput(texto) {
+        return texto
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/script/gi, "")
+            .replace(/onerror/gi, "")
+            .replace(/onload/gi, "")
+            .trim();
+        }
+
+        // 🚫 Detectar código peligroso
+        function contieneCodigoPeligroso(texto) {
+        const patrones = /(<script|<\/script>|javascript:|onerror=|onload=|<iframe)/i;
+        return patrones.test(texto);
+        }
+
         form.addEventListener("submit", function(event) {
         event.preventDefault();
-        // Validación Bootstrap
+
+        // ⛔ Honeypot (campo oculto)
+        const empresa = document.getElementById("empresa")?.value;
+        if (empresa) {
+            console.warn("Bot detectado 🚫");
+            return;
+        }
+
+        // ⏱️ Anti spam rápido
+        const tiempoActual = Date.now();
+        const diferencia = (tiempoActual - tiempoInicio) / 1000;
+        if (diferencia < 3) {
+            alert("Envío demasiado rápido ⚠️");
+            return;
+        }
+
+        // ✅ Validación Bootstrap
         if (!form.checkValidity()) {
             event.stopPropagation();
             form.classList.add("was-validated");
             return;
         }
-        // Si pasa validación → enviar correo
+
+        // Obtener valores
+        let nombre = document.getElementById("nombre").value;
+        let telefono = document.getElementById("telefono").value;
+        let correo = document.getElementById("correo").value;
+        let mensaje = document.getElementById("mensaje").value;
+
+        // 🚫 Bloquear scripts
+        if (
+            contieneCodigoPeligroso(nombre) ||
+            contieneCodigoPeligroso(mensaje)
+        ) {
+            alert("Contenido no permitido 🚫");
+            return;
+        }
+
+        // 🔐 Validaciones extra
+        if (nombre.length < 3) {
+            alert("Nombre muy corto");
+            return;
+        }
+
+        if (!/^[0-9+\-\s]+$/.test(telefono)) {
+            alert("Teléfono inválido");
+            return;
+        }
+
+        if (mensaje.length < 10) {
+            alert("El mensaje es muy corto");
+            return;
+        }
+
+        if (mensaje.length > 500) {
+            alert("Mensaje demasiado largo");
+            return;
+        }
+
+        // 🧼 Sanitizar datos
+        nombre = limpiarInput(nombre);
+        telefono = limpiarInput(telefono);
+        correo = limpiarInput(correo);
+        mensaje = limpiarInput(mensaje);
+
+        // 🔒 Evitar doble envío
+        boton.disabled = true;
+        boton.innerText = "Enviando...";
+
+        // 📧 Enviar correo
         emailjs.send("service_cihis7p", "template_zj31yht", {
-            nombre: document.getElementById("nombre").value,
-            telefono: document.getElementById("telefono").value,
-            correo: document.getElementById("correo").value,
-            mensaje: document.getElementById("mensaje").value
+            nombre,
+            telefono,
+            correo,
+            mensaje
         })
         .then(() => {
             alert("Mensaje enviado ✅");
             form.reset();
             form.classList.remove("was-validated");
+            boton.disabled = false;
+            boton.innerText = "Enviar";
         })
         .catch((error) => {
             console.log(error);
             alert("Error al enviar ❌");
+            boton.disabled = false;
+            boton.innerText = "Enviar";
         });
-        });
-        /*document.getElementById("formulario").addEventListener("submit", function(e) {
-        e.preventDefault();
 
-        emailjs.send("service_cihis7p", "template_zj31yht", {
-            nombre: document.getElementById("nombre").value,
-            telefono: document.getElementById("telefono").value,
-            correo: document.getElementById("correo").value,
-            mensaje: document.getElementById("mensaje").value
-        })
-        .then(function(response) {
-            alert("Mensaje enviado correctamente ✅");
-        }, function(error) {
-            alert("Error al enviar ❌");
         });
-        });*/
     </script>
     </body>
 </html>
